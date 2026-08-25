@@ -12,9 +12,25 @@ export interface ProcessResult {
   error?: string;
 }
 
+function makeStatCard(label: string, value: string | number, variant?: 'primary' | 'success' | 'danger' | 'info'): HTMLElement {
+  const card = document.createElement('div');
+  card.className = `stat-card ${variant ? `stat-${variant}` : ''}`;
+  
+  const title = document.createElement('div');
+  title.className = 'stat-label';
+  title.textContent = label;
+  
+  const val = document.createElement('div');
+  val.className = 'stat-value';
+  val.textContent = String(value);
+  
+  card.append(title, val);
+  return card;
+}
+
 function makeListItem(className: string, ...nodes: (string | Node)[]): HTMLLIElement {
   const li = document.createElement('li');
-  li.className = className;
+  li.className = `result-item ${className}`;
   for (const node of nodes) {
     li.append(node);
   }
@@ -33,72 +49,126 @@ export function renderResult(
   const failures = results.filter((r) => r.status === 'failed');
   const noted = successes.filter((r) => r.note);
 
+  // ヘッダー部
+  const header = document.createElement('div');
+  header.className = 'result-header';
+  
   const heading = document.createElement('h2');
-  heading.textContent =
-    failures.length > 0 ? '処理完了（一部失敗）' : results.length > 0 ? '処理完了' : '対象ファイルがありません';
-  container.appendChild(heading);
+  heading.className = 'result-title';
+  heading.textContent = failures.length > 0 ? '変換完了（一部エラーあり）' : '変換完了';
+  
+  const badge = document.createElement('span');
+  badge.className = `status-pill ${failures.length > 0 ? 'pill-warning' : 'pill-success'}`;
+  badge.textContent = failures.length > 0 ? 'Completed with errors' : 'All Successful';
+  
+  header.append(heading, badge);
+  container.appendChild(header);
 
-  const summary = document.createElement('p');
-  summary.className = 'summary';
-  const okCount = document.createElement('b');
-  okCount.className = 'ok';
-  okCount.textContent = String(successes.length);
-  const ngCount = document.createElement('b');
-  ngCount.className = 'ng';
-  ngCount.textContent = String(failures.length);
-  summary.append('成功：', okCount, '\u3000失敗：', ngCount);
-  container.appendChild(summary);
+  // 統計メトリクスグリッド
+  const statsGrid = document.createElement('div');
+  statsGrid.className = 'stats-grid';
+  statsGrid.appendChild(makeStatCard('合計画像数', results.length, 'primary'));
+  statsGrid.appendChild(makeStatCard('成功', successes.length, 'success'));
+  statsGrid.appendChild(makeStatCard('失敗', failures.length, failures.length > 0 ? 'danger' : 'info'));
+  if (typeof elapsedMs === 'number') {
+    const sec = (elapsedMs / 1000).toFixed(1);
+    statsGrid.appendChild(makeStatCard('所要時間', `${sec}s`));
+  }
+  container.appendChild(statsGrid);
 
-  const destination = document.createElement('p');
-  destination.className = 'destination';
-  destination.textContent = `保存先：${destinationLabel}`;
-  container.appendChild(destination);
+  // 保存先情報カード
+  const destCard = document.createElement('div');
+  destCard.className = 'destination-box';
+  const destIcon = document.createElement('span');
+  destIcon.className = 'dest-icon';
+  destIcon.textContent = '📁';
+  const destText = document.createElement('div');
+  destText.className = 'dest-text';
+  const destTitle = document.createElement('span');
+  destTitle.className = 'dest-title';
+  destTitle.textContent = '保存先：';
+  const destPath = document.createElement('span');
+  destPath.className = 'dest-path';
+  destPath.textContent = destinationLabel;
+  destText.append(destTitle, destPath);
+  destCard.append(destIcon, destText);
+  container.appendChild(destCard);
 
   if (noted.length > 0) {
-    const warning = document.createElement('p');
-    warning.className = 'warning';
-    warning.textContent = `※${noted.length}件はこのブラウザがWebP保存に対応していないためPNGで保存しました。`;
+    const warning = document.createElement('div');
+    warning.className = 'result-alert alert-warning';
+    warning.textContent = `※ ${noted.length}件はWebP非対応のためPNGで保存しました。`;
     container.appendChild(warning);
   }
 
-  if (typeof elapsedMs === 'number') {
-    const seconds = (elapsedMs / 1000).toFixed(1);
-    const meta = document.createElement('p');
-    meta.className = 'meta';
-    meta.textContent = `処理時間：${seconds}秒`;
-    container.appendChild(meta);
-  }
-
+  // 失敗ファイルリスト
   if (failures.length > 0) {
-    const details = document.createElement('details');
-    details.open = true;
-    const caption = document.createElement('summary');
-    caption.textContent = `失敗したファイル（${failures.length}）`;
-    details.appendChild(caption);
+    const section = document.createElement('div');
+    section.className = 'result-section';
+    const sectionTitle = document.createElement('h3');
+    sectionTitle.className = 'section-subtitle failure-title';
+    sectionTitle.textContent = `失敗したファイル (${failures.length})`;
+    section.appendChild(sectionTitle);
 
     const list = document.createElement('ul');
+    list.className = 'result-list';
     for (const failure of failures) {
-      list.appendChild(makeListItem('li-ng', `${failure.sourceName} — ${failure.error ?? '不明なエラー'}`));
+      const icon = document.createElement('span');
+      icon.className = 'status-icon icon-ng';
+      icon.textContent = '✕';
+      
+      const fileInfo = document.createElement('div');
+      fileInfo.className = 'item-info';
+      const name = document.createElement('div');
+      name.className = 'item-name';
+      name.textContent = failure.sourceName;
+      const err = document.createElement('div');
+      err.className = 'item-detail text-danger';
+      err.textContent = failure.error ?? '不明なエラー';
+      fileInfo.append(name, err);
+
+      const li = makeListItem('li-danger', icon, fileInfo);
+      list.appendChild(li);
     }
-    details.appendChild(list);
-    container.appendChild(details);
+    section.appendChild(list);
+    container.appendChild(section);
   }
 
+  // 成功ファイルリスト
   if (successes.length > 0) {
-    const details = document.createElement('details');
-    const caption = document.createElement('summary');
-    caption.textContent = `成功したファイル（${successes.length}）`;
-    details.appendChild(caption);
+    const section = document.createElement('div');
+    section.className = 'result-section';
+    const sectionTitle = document.createElement('h3');
+    sectionTitle.className = 'section-subtitle success-title';
+    sectionTitle.textContent = `リサイズ成功 (${successes.length})`;
+    section.appendChild(sectionTitle);
 
     const list = document.createElement('ul');
+    list.className = 'result-list';
     for (const success of successes) {
-      const item = success.note
-        ? makeListItem(`li-ok li-note`, `${success.sourceName} → ${success.outputName}（${success.note}）`)
-        : makeListItem('li-ok', `${success.sourceName} → ${success.outputName}`);
-      list.appendChild(item);
+      const icon = document.createElement('span');
+      icon.className = 'status-icon icon-ok';
+      icon.textContent = '✓';
+
+      const fileInfo = document.createElement('div');
+      fileInfo.className = 'item-info';
+      const name = document.createElement('div');
+      name.className = 'item-name';
+      name.textContent = `${success.sourceName} → ${success.outputName ?? success.sourceName}`;
+      
+      fileInfo.append(name);
+      if (success.note) {
+        const note = document.createElement('div');
+        note.className = 'item-detail text-warn';
+        note.textContent = success.note;
+        fileInfo.appendChild(note);
+      }
+
+      const li = makeListItem('li-success', icon, fileInfo);
+      list.appendChild(li);
     }
-    details.appendChild(list);
-    container.appendChild(details);
+    section.appendChild(list);
+    container.appendChild(section);
   }
 
   container.hidden = false;

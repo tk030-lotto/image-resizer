@@ -17,86 +17,183 @@ import {
 import { renderResult, type ProcessResult } from './ui/result';
 
 interface QueueItem {
+  id: string;
   file: File;
-  format: ImageFormat | null; // null = 非対応形式(仕様§12でエラー扱い)
+  format: ImageFormat | null;
+  previewUrl?: string;
+  formattedSize: string;
 }
 
+// DOM 要素
+const dragOverlay = document.getElementById('drag-overlay') as HTMLElement;
 const dropZone = document.getElementById('drop-zone') as HTMLElement;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
+const fileListCard = document.getElementById('file-list-card') as HTMLElement;
 const fileList = document.getElementById('file-list') as HTMLElement;
+const queueCountBadge = document.getElementById('queue-count-badge') as HTMLElement;
+const clearAllBtn = document.getElementById('clear-all-btn') as HTMLButtonElement;
+
 const form = document.getElementById('convert-form') as HTMLFormElement;
 const longEdgeInput = document.getElementById('long-edge') as HTMLInputElement;
 const outputNameInput = document.getElementById('output-name') as HTMLInputElement;
+const presetButtons = document.querySelectorAll<HTMLButtonElement>('.preset-btn');
 const startButton = document.getElementById('start-button') as HTMLButtonElement;
-const progressEl = document.getElementById('progress') as HTMLElement;
+
+const progressWrapper = document.getElementById('progress-wrapper') as HTMLElement;
+const progressStatusText = document.getElementById('progress-status-text') as HTMLElement;
+const progressPercentText = document.getElementById('progress-percent-text') as HTMLElement;
+const progressBarFill = document.getElementById('progress-bar-fill') as HTMLElement;
+
 const modeNote = document.getElementById('mode-note') as HTMLElement;
 const resultEl = document.getElementById('result') as HTMLElement;
 
-/** ドロップされたファイルの待ち行列 */
 const queue: QueueItem[] = [];
 let running = false;
+let dragCounter = 0;
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
 
 function setNote(message: string, isError = false): void {
   modeNote.textContent = message;
   modeNote.classList.toggle('error', isError);
 }
 
-function setProgress(current: number, total: number): void {
-  progressEl.hidden = false;
-  progressEl.textContent = `変換中… ${current} / ${total}`;
+function updateProgress(current: number, total: number): void {
+  progressWrapper.hidden = false;
+  const pct = Math.round((current / total) * 100);
+  progressStatusText.textContent = `変換中... (${current} / ${total})`;
+  progressPercentText.textContent = `${pct}%`;
+  progressBarFill.style.width = `${pct}%`;
 }
 
-/** UI を1フレーム描画させるための待ち */
 function nextTick(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => setTimeout(resolve, 0));
   });
 }
 
-// --- ファイル受け入れ ---
+// --- ファイル管理 ---
 
 function addFiles(files: File[]): void {
   if (files.length === 0) return;
   for (const file of files) {
-    queue.push({ file, format: detectFormat(file.name, file.type) });
+    const format = detectFormat(file.name, file.type);
+    let previewUrl: string | undefined;
+    if (file.type.startsWith('image/') || format !== null) {
+      try {
+        previewUrl = URL.createObjectURL(file);
+      } catch (_e) {
+        // オブジェクトURL生成失敗時はスキップ
+      }
+    }
+    queue.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      file,
+      format,
+      previewUrl,
+      formattedSize: formatBytes(file.size),
+    });
   }
+  refreshFileList();
+}
+
+function removeQueueItem(id: string): void {
+  const idx = queue.findIndex((item) => item.id === id);
+  if (idx !== -1) {
+    const item = queue[idx];
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    queue.splice(idx, 1);
+    refreshFileList();
+  }
+}
+
+function clearQueue(): void {
+  for (const item of queue) {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  }
+  queue.length = 0;
   refreshFileList();
 }
 
 function refreshFileList(): void {
   fileList.textContent = '';
-  fileList.hidden = queue.length === 0;
-  if (queue.length === 0) return;
+  const count = queue.length;
+  fileListCard.hidden = count === 0;
+  queueCountBadge.textContent = `${count} 件`;
 
-  const head = document.createElement('div');
-  head.className = 'file-head';
-  const count = document.createElement('span');
-  count.textContent = `${queue.length}件のファイル`;
-  const clearButton = document.createElement('button');
-  clearButton.type = 'button';
-  clearButton.className = 'file-clear';
-  clearButton.textContent = 'すべてクリア';
-  clearButton.addEventListener('click', () => {
-    queue.length = 0;
-    refreshFileList();
-  });
-  head.append(count, clearButton);
-  fileList.appendChild(head);
+  if (count === 0) return;
 
-  const list = document.createElement('ul');
   for (const item of queue) {
-    const li = document.createElement('li');
-    li.title = item.file.name;
-    li.append(item.file.name);
-    if (!item.format) {
-      const tag = document.createElement('span');
-      tag.className = 'unsupported';
-      tag.textContent = '　（未対応形式）';
-      li.appendChild(tag);
+    const row = document.createElement('div');
+    row.className = 'file-row';
+
+    // 左側（サムネイル＋メタ情報）
+    const left = document.createElement('div');
+    left.className = 'file-row-left';
+
+    if (item.previewUrl && item.format !== null) {
+      const img = document.createElement('img');
+      img.className = 'file-thumb';
+      img.src = item.previewUrl;
+      img.alt = item.file.name;
+      left.appendChild(img);
+    } else {
+      const fallback = document.createElement('div');
+      fallback.className = 'file-thumb-fallback';
+      fallback.textContent = item.format?.ext.replace('.', '').toUpperCase() || 'FILE';
+      left.appendChild(fallback);
     }
-    list.appendChild(li);
+
+    const metaCol = document.createElement('div');
+    metaCol.className = 'file-meta-col';
+    const nameText = document.createElement('div');
+    nameText.className = 'file-name-text';
+    nameText.textContent = item.file.name;
+    nameText.title = item.file.name;
+
+    const subText = document.createElement('div');
+    subText.className = 'file-sub-text';
+    subText.textContent = item.formattedSize;
+
+    metaCol.append(nameText, subText);
+    left.appendChild(metaCol);
+
+    // 右側（バッジ＋削除ボタン）
+    const right = document.createElement('div');
+    right.className = 'file-row-right';
+
+    const badge = document.createElement('span');
+    if (item.format) {
+      badge.className = 'file-format-badge';
+      badge.textContent = item.format.ext.replace('.', '').toUpperCase();
+    } else {
+      badge.className = 'file-format-badge unsupported';
+      badge.textContent = '非対応';
+    }
+    right.appendChild(badge);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'file-remove-btn';
+    removeBtn.setAttribute('aria-label', `${item.file.name} を削除`);
+    removeBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    `;
+    removeBtn.addEventListener('click', () => removeQueueItem(item.id));
+    right.appendChild(removeBtn);
+
+    row.append(left, right);
+    fileList.appendChild(row);
   }
-  fileList.appendChild(list);
 }
 
 // --- 変換実行 ---
@@ -113,7 +210,7 @@ function readLongEdge(): number | null {
 
 function describeError(error: unknown): string {
   if (error instanceof DOMException && error.name === 'NotAllowedError') {
-    return '出力先への書き込みが許可されませんでした';
+    return '出力先フォルダへの書き込みが許可されませんでした';
   }
   if (error instanceof Error) {
     return error.message;
@@ -125,7 +222,7 @@ async function convert(): Promise<void> {
   const longEdge = readLongEdge();
   if (longEdge === null) return;
   if (queue.length === 0) {
-    setNote('まず画像をドロップしてください。', true);
+    setNote('画像をドラッグ＆ドロップして追加してください。', true);
     return;
   }
 
@@ -139,7 +236,7 @@ async function convert(): Promise<void> {
     setNote('出力先フォルダを選択してください…');
     const baseDir = await pickTargetDirectory();
     if (!baseDir) {
-      setNote('出力先フォルダの選択をキャンセルしたため、変換を中止しました。', true);
+      setNote('出力先フォルダの選択がキャンセルされたため、処理を中断しました。', true);
       return;
     }
     outDir = await ensureSubDirectory(baseDir, folderName);
@@ -160,7 +257,7 @@ async function convert(): Promise<void> {
   try {
     for (let i = 0; i < queue.length; i += 1) {
       const item = queue[i];
-      setProgress(i + 1, queue.length);
+      updateProgress(i + 1, queue.length);
 
       if (!item.format) {
         results.push({
@@ -188,7 +285,7 @@ async function convert(): Promise<void> {
           sourceName: item.file.name,
           outputName,
           status: 'success',
-          note: encode.downgraded ? 'WebP保存非対応のためPNGで保存' : undefined,
+          note: encode.downgraded ? 'WebP非対応のためPNGで保存' : undefined,
         });
       } catch (error) {
         results.push({
@@ -198,7 +295,6 @@ async function convert(): Promise<void> {
         });
       }
 
-      // UI を固まらせないよう1枚ごとに制御を返す
       await nextTick();
     }
 
@@ -208,7 +304,7 @@ async function convert(): Promise<void> {
     }
 
     renderResult(resultEl, results, destinationLabel, Date.now() - startedAt);
-    progressEl.hidden = true;
+    progressWrapper.hidden = true;
     setNote('');
   } finally {
     running = false;
@@ -219,53 +315,90 @@ async function convert(): Promise<void> {
 // --- 初期化 ---
 
 function init(): void {
-  // ドラッグ＆ドロップ
-  for (const eventName of ['dragenter', 'dragover'] as const) {
-    dropZone.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      dropZone.classList.add('dragover');
-    });
-  }
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', (event) => {
-    event.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (event.dataTransfer) {
-      addFiles(filesFromDataTransfer(event.dataTransfer));
+  // ウィンドウ全体でのドラッグ＆ドロップ制御（ブラウザでの画像直接展開防止＋グローバル受付）
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragCounter += 1;
+    if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+      dragOverlay.classList.add('active');
     }
   });
 
-  // クリックでのファイル選択(D&Dの補助)
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter = Math.max(0, dragCounter - 1);
+    if (dragCounter === 0) {
+      dragOverlay.classList.remove('active');
+    }
+  });
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    dragOverlay.classList.remove('active');
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer) {
+      addFiles(filesFromDataTransfer(e.dataTransfer));
+    }
+  });
+
+  // ドロップゾーンクリックでファイル選択
   dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
     addFiles(Array.from(fileInput.files ?? []));
     fileInput.value = '';
   });
 
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
+  // 全件クリア
+  clearAllBtn.addEventListener('click', clearQueue);
+
+  // プリセットボタン連動
+  for (const btn of Array.from(presetButtons)) {
+    btn.addEventListener('click', () => {
+      presetButtons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const size = btn.dataset.size;
+      if (size) {
+        longEdgeInput.value = size;
+      }
+    });
+  }
+
+  longEdgeInput.addEventListener('input', () => {
+    const currentVal = longEdgeInput.value;
+    presetButtons.forEach((b) => {
+      b.classList.toggle('active', b.dataset.size === currentVal);
+    });
+  });
+
+  // フォーム送信
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
     if (!running) {
       void convert().catch((error) => {
-        setNote(`予期しないエラーが発生しました: ${describeError(error)}`, true);
+        setNote(`エラーが発生しました: ${describeError(error)}`, true);
       });
     }
   });
 
-  // 環境に応じた案内表示
+  // 環境案内メッセージ
   const notes: string[] = [];
   if (supportsDirectoryPicker()) {
-    notes.push(
-      '「変換開始」を押すと出力先フォルダを選択できます。選択したフォルダ内に出力フォルダを作って保存します。',
-    );
+    notes.push('「変換開始」を押すと保存先フォルダを選択できます。選択したフォルダ内にサブフォルダを作成して直接保存します。');
   } else {
-    notes.push(
-      'このブラウザはフォルダ直接保存に対応していないため、ZIPファイルとしてダウンロードします。',
-    );
+    notes.push('※お使いのブラウザはフォルダ直接保存に対応していないため、ZIPファイルとして一括ダウンロードします。');
   }
   if (!supportsWebpEncode()) {
-    notes.push('※このブラウザはWebP形式の保存に対応していないため、WebP画像はPNGで保存されます。');
+    notes.push('（WebP保存非対応環境のため、WebP画像はPNGに変換して保存します）');
   }
-  setNote(notes.join(''));
+  setNote(notes.join(' '));
 }
 
 init();

@@ -3,45 +3,169 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Resizer</title>
-    <meta name="description" content="長辺指定で画像を一括リサイズするシンプルなツール。処理はブラウザ内で完結し、画像を外部に送信しません。" />
+    <title>Image Resizer — 高速画像一括リサイズツール</title>
+    <meta
+      name="description"
+      content="長辺指定で画像を一括リサイズする高速Webツール。完全クライアントサイド実行で画像を外部送信せず安心・安全に処理します。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <main class="app">
-      <h1>Image Resizer</h1>
+    <!-- グローバルドラッグオーバーレイ -->
+    <div id="drag-overlay" class="drag-overlay" aria-hidden="true">
+      <div class="drag-overlay-content">
+        <span class="drag-overlay-icon">📥</span>
+        <p class="drag-overlay-text">ここに画像をドロップして追加</p>
+      </div>
+    </div>
 
-      <section id="drop-zone" class="drop-zone" aria-label="画像のドラッグ＆ドロップ領域">
-        <p class="drop-message">ここに画像をドロップ</p>
-        <p class="drop-sub">JPG / JPEG / PNG / WebP（複数可）・クリックでファイル選択</p>
+    <main class="app-container">
+      <!-- ヘッダー -->
+      <header class="app-header">
+        <div class="header-brand">
+          <div class="app-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 class="app-title">Image Resizer</h1>
+            <p class="app-subtitle">長辺指定一括リサイズ・完全オフライン処理</p>
+          </div>
+        </div>
+        <div class="header-badges">
+          <span class="badge badge-success">
+            <span class="badge-dot"></span>Client-Side
+          </span>
+          <span class="badge badge-info">Zero Upload</span>
+        </div>
+      </header>
+
+      <!-- ドロップゾーンカード -->
+      <section class="card upload-card">
+        <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="画像のドラッグ＆ドロップ領域。クリックでファイル選択">
+          <div class="drop-icon-wrapper">
+            <svg class="drop-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" x2="12" y1="3" y2="15"/>
+            </svg>
+          </div>
+          <p class="drop-primary-text">ここに画像をドラッグ＆ドロップ</p>
+          <p class="drop-secondary-text">または <span class="browse-link">ファイルを選択</span>（複数選択可）</p>
+          <div class="supported-formats">
+            <span class="format-tag">JPG</span>
+            <span class="format-tag">JPEG</span>
+            <span class="format-tag">PNG</span>
+            <span class="format-tag">WebP</span>
+          </div>
+        </div>
+        <input
+          id="file-input"
+          type="file"
+          multiple
+          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+          hidden
+        />
       </section>
-      <input
-        id="file-input"
-        type="file"
-        multiple
-        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-        hidden
-      />
 
-      <div id="file-list" class="file-list" hidden></div>
+      <!-- ファイルキュー一覧カード -->
+      <section id="file-list-card" class="card queue-card" hidden>
+        <div class="card-header">
+          <div class="queue-meta">
+            <span class="card-title">選択中のファイル</span>
+            <span id="queue-count-badge" class="count-badge">0 件</span>
+          </div>
+          <button id="clear-all-btn" type="button" class="btn-text text-danger">すべてクリア</button>
+        </div>
+        <div id="file-list" class="file-grid"></div>
+      </section>
 
-      <form id="convert-form">
-        <label class="field">
-          <span>長辺</span>
-          <input id="long-edge" type="number" min="1" max="20000" step="1" value="1280" required />
-          px
-        </label>
-        <label class="field">
-          <span>出力先</span>
-          <input id="output-name" type="text" value="resized" maxlength="100" required />
-        </label>
+      <!-- 設定＆実行フォームカード -->
+      <form id="convert-form" class="card config-card">
+        <div class="card-header">
+          <span class="card-title">変換設定</span>
+        </div>
 
-        <button id="start-button" type="submit">変換開始</button>
-        <p id="progress" class="progress" hidden></p>
-        <p id="mode-note" class="mode-note"></p>
+        <div class="config-grid">
+          <!-- 長辺指定 -->
+          <div class="form-group">
+            <label for="long-edge" class="form-label">
+              <span>長辺サイズ</span>
+              <span class="label-hint">※元画像より小さい場合は拡大しません</span>
+            </label>
+            <div class="input-with-unit">
+              <input
+                id="long-edge"
+                type="number"
+                min="1"
+                max="20000"
+                step="1"
+                value="1280"
+                required
+                class="form-input text-mono"
+              />
+              <span class="unit-badge">px</span>
+            </div>
+            <!-- プリセットボタン -->
+            <div class="preset-buttons">
+              <button type="button" class="preset-btn" data-size="1920">1920 (FHD)</button>
+              <button type="button" class="preset-btn active" data-size="1280">1280 (HD)</button>
+              <button type="button" class="preset-btn" data-size="1080">1080 (SNS)</button>
+              <button type="button" class="preset-btn" data-size="800">800 (Web)</button>
+            </div>
+          </div>
+
+          <!-- 出力フォルダ名 -->
+          <div class="form-group">
+            <label for="output-name" class="form-label">
+              <span>保存フォルダ名</span>
+            </label>
+            <input
+              id="output-name"
+              type="text"
+              value="resized"
+              maxlength="100"
+              required
+              class="form-input text-mono"
+            />
+          </div>
+        </div>
+
+        <!-- 案内メッセージ -->
+        <div id="mode-note" class="info-banner"></div>
+
+        <!-- プログレスバー -->
+        <div id="progress-wrapper" class="progress-wrapper" hidden>
+          <div class="progress-header">
+            <span id="progress-status-text" class="progress-status-text">変換処理中...</span>
+            <span id="progress-percent-text" class="progress-percent-text">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 変換開始ボタン -->
+        <button id="start-button" type="submit" class="btn-primary">
+          <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span>変換開始</span>
+        </button>
       </form>
 
-      <section id="result" class="result" hidden aria-live="polite"></section>
+      <!-- 処理結果セクション -->
+      <section id="result" class="card result-card" hidden aria-live="polite"></section>
     </main>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
