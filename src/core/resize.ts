@@ -36,11 +36,15 @@ export function calculateDimensions(width: number, height: number, longEdge: num
 }
 
 /**
- * EXIF Orientation を反映して画像をデコードする。
+ * EXIF Orientation を反映して画像をデコードする(非対応環境は標準デコードへフォールバック)。
  */
 async function decodeImage(blob: Blob): Promise<ImageBitmap> {
-  const options = { imageOrientation: 'from-image' } as unknown as ImageBitmapOptions;
-  return createImageBitmap(blob, options);
+  try {
+    return await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  } catch (_err) {
+    // 古いブラウザや非対応環境向けフォールバック
+    return await createImageBitmap(blob);
+  }
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number): Promise<Blob> {

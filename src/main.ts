@@ -252,7 +252,7 @@ async function convert(): Promise<void> {
       return;
     }
     outDir = await ensureSubDirectory(baseDir, folderName);
-    destinationLabel = `${baseDir.name}\\${folderName}\\`;
+    destinationLabel = `${baseDir.name}/${folderName}/`;
   } else {
     destinationLabel = `${folderName}.zip（ダウンロード）`;
   }
