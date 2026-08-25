@@ -1,7 +1,11 @@
 # AI開発行動規範（AI_RULES.md）
 
-このファイルはすべてのAIアシスタント共通の強制ルール正本です。
-Cline / Cursor / Claude Code / Roo Code / GitHub Copilot / Antigravity IDE のいずれが読み込んでも適用されます。
+> **【正本更新ルール】**  
+> このファイルの内容を変更する場合は、必ず `C:\Users\tk030\Desktop\各種情報\AI_RULES.md`（正本）を先に更新し、  
+> `sync_rules.ps1` を実行して全プロジェクトへ反映すること。プロジェクト側の本ファイルを直接書き換えても次回 sync で上書きされる。
+
+このファイルはすべてのAIアシスタント共通の強制ルール正本です。  
+Cline / Cursor / Claude Code / Roo Code / GitHub Copilot / Antigravity IDE のいずれが読み込んでも適用されます。  
 以下のルールは **いかなる状況でも例外なく適用される**。
 
 ---
@@ -40,19 +44,72 @@ Cline / Cursor / Claude Code / Roo Code / GitHub Copilot / Antigravity IDE の�
 
 ## 品質監査の義務
 
-- 実装完了時・機能修正時は、以下の9段階横断監査を実施すること：
-  1. プロジェクト資料の精読
-  2. プロジェクト構成の確認（ビルドパイプライン含む）
-  3. 要件・仕様と実装の照合（コードレベル）
-  4. コード深層監査（**全ソースファイルを1行ずつ精読**・省略禁止）
-  5. セキュリティ監査
-  6. 異常系・境界値の洗い出し
-  7. テスト状況の確認
-  8. ログ・エラー・実行結果の確認
-  9. UI/UX監査
+### 監査ツールの選択基準
+
+| 状況 | 使用するツール |
+|---|---|
+| MCPツールが利用可能（接続確認済み） | **MCPを優先**: `run_project_quality_audit`（ai-context-manager） または `v3.run_quality_audit`（V3MCP） |
+| MCPツールが利用不可（切断・未登録） | **フォールバック**: `quality-audit` スキル（SKILL.md）を手動で適用 |
+
+### 監査フェーズ（9段階）
+
+実装完了時・機能修正時は以下を必ず実施すること：
+
+1. プロジェクト資料の精読
+2. プロジェクト構成の確認（ビルドパイプライン含む）
+3. 要件・仕様と実装の照合（コードレベル）
+4. コード深層監査（**全ソースファイルを1行ずつ精読**・省略禁止）
+5. セキュリティ監査
+6. 異常系・境界値の洗い出し
+7. テスト状況の確認
+8. ログ・エラー・実行結果の確認
+9. UI/UX監査
+
+### 監査の禁止事項
+
 - **テスト通過・ビルド成功だけを根拠にした「PASS」判定は禁止**。
 - **I/O境界（既存ファイルへの影響・権限・リソース解放）・ビルドパイプライン・非同期状態遷移の追跡を省略することを禁止**。
-- 監査結果は `PASS` / `PASS WITH NOTES` / `REQUIRES FIX` / `BLOCKED` の4段階で報告すること。
+
+### 監査結果の報告形式
+
+重要度: `Critical` / `High` / `Medium` / `Low` / `Suggestion` / `Additional Feature` の6段階  
+総合判定: `PASS` / `PASS WITH NOTES` / `REQUIRES FIX` / `BLOCKED` の4段階で報告すること。
+
+---
+
+## MCPツールの積極運用義務
+
+### 利用可能なMCPサーバー
+
+**AI開発コンテキスト管理MCPツール** (`ai-context-manager-mcp`):
+- `build_context_pack` — 開発モード・トークン予算別の最適コンテキスト合成。**ファイル調査の代わりに最優先で呼び出す**
+- `run_project_quality_audit` — 横断的9段階品質監査・受入判定レポート生成。**実装完了・修正完了時に必ず呼び出す**
+- `generate_handover` / `generate_ai_transfer` — チャット・モデル間引き継ぎサマリー自動生成。**セッション終了前に呼び出す**
+- `check_context_integrity` — 4大設計文書（仕様書・README・RECORD・設計書）の配置・健全性診断
+- `extract_git_diff` — 構造化Git差分抽出。**コードレビュー前に呼び出す**
+
+**AIコンテキスト管理ツールV3MCP** (`ai-context-manager-v3-mcp`):
+- `v3.run_quality_audit` — 9段階品質監査・ガバナンス受入判定。**実装完了・修正完了時に必ず呼び出す**
+- `v3.check_gate` — フェーズ移行・仕様確定ゲート判定。**設計→実装・実装→リリースの移行前に呼び出す**
+- `v3.run_pre_audit` — 開発前ルール遵守チェック（事前承認・Zero-Dependency・300行制限）。**実装開始前に呼び出す**
+- `v3.check_drift` — コード・仕様乖離検知。**定期的に呼び出して仕様とコードの整合性を確認する**
+
+### MCPツール呼び出しのトリガー
+
+| タイミング | 呼び出すツール |
+|---|---|
+| ファイル調査・コンテキスト収集 | `build_context_pack` |
+| 実装・修正開始前 | `v3.run_pre_audit` |
+| フェーズ移行前（設計→実装等） | `v3.check_gate` |
+| 実装・修正完了後 | `run_project_quality_audit` または `v3.run_quality_audit` |
+| コードレビュー前 | `extract_git_diff` |
+| 仕様との整合性確認 | `v3.check_drift` |
+| セッション終了前 | `generate_handover` |
+
+### MCPツールが使えない場合のフォールバック
+
+- コンテキスト収集 → `view_file` / `grep_search` で手動調査
+- 品質監査 → `quality-audit` スキル（Antigravity: `~/.gemini/config/skills/quality-audit/SKILL.md`）を適用
 
 ---
 
@@ -79,7 +136,7 @@ Cline / Cursor / Claude Code / Roo Code / GitHub Copilot / Antigravity IDE の�
 ## UI/UX妥協禁止
 
 - フロントエンドUIはプレーンなMVPで妥協せず、プレミアムなデザインをデフォルトで出力すること。
-- デスクトップ向けツールのUIは「Project Stats Tool」のデザインシステム（`#09090b` ダーク背景、`#121215` カード、`#27272a` ボーダー、`Inter` / `JetBrains Mono` フォント）に準拠した機能的でシックなミニマル・ダークUIをデフォルト出力とすること。
+- デスクトップ向けツールのUIは「Project Stats Tool」のデザインシステム（`#09090b` ダーク背景、`#121215` カード、`#27272a` ボーダー、`Inter` / `JetBrains Mono` フォント）に準拠したシックなミニマル・ダークUIをデフォルト出力とすること。
 
 ---
 
@@ -113,12 +170,3 @@ AIアシスタントは、単一のコンテキストで全作業を抱え込ま
 - **品質・受入監査（Review）**: `reviewer` エージェントを起動（ファイル変更不可の閲覧専用）。
 - **仕様・マニュアル（Docs）**: `doc-writer` エージェントを起動。
 - **記録・永続化（Archive）**: `context-archivist` エージェントを起動して `RECORD.md` を更新。
-
----
-
-## MCPツールの積極利用義務
-
-開発・分析・コード生成を行う際は、以下のMCPツールを優先的に呼び出すこと：
-
-- `AI開発コンテキスト管理MCPツール`: `build_context_pack`, `run_project_quality_audit`, `generate_handover`, `check_context_integrity`
-- `AIコンテキスト管理ツールV3MCP`: `v3.run_quality_audit`, `v3.check_gate`, `v3.run_pre_audit`, `v3.check_drift`
