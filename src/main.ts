@@ -9,6 +9,7 @@ import {
   ensureSubDirectory,
   pickTargetDirectory,
   sanitizeFolderName,
+  seedExistingNames,
   supportsDirectoryPicker,
   writeFile,
   type OutputDirectoryHandle,
@@ -81,7 +82,7 @@ function nextTick(): Promise<void> {
 // --- ファイル管理 ---
 
 function addFiles(files: File[]): void {
-  if (files.length === 0) return;
+  if (running || files.length === 0) return;
   for (const file of files) {
     const format = detectFormat(file.name, file.type);
     let previewUrl: string | undefined;
@@ -104,6 +105,7 @@ function addFiles(files: File[]): void {
 }
 
 function removeQueueItem(id: string): void {
+  if (running) return;
   const idx = queue.findIndex((item) => item.id === id);
   if (idx !== -1) {
     const item = queue[idx];
@@ -114,11 +116,20 @@ function removeQueueItem(id: string): void {
 }
 
 function clearQueue(): void {
+  if (running) return;
   for (const item of queue) {
     if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
   }
   queue.length = 0;
   refreshFileList();
+}
+
+function setQueueButtonsDisabled(disabled: boolean): void {
+  clearAllBtn.disabled = disabled;
+  const removeButtons = fileList.querySelectorAll<HTMLButtonElement>('.file-remove-btn');
+  removeButtons.forEach((btn) => {
+    btn.disabled = disabled;
+  });
 }
 
 function refreshFileList(): void {
@@ -181,6 +192,7 @@ function refreshFileList(): void {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'file-remove-btn';
+    removeBtn.disabled = running;
     removeBtn.setAttribute('aria-label', `${item.file.name} を削除`);
     removeBtn.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -247,17 +259,24 @@ async function convert(): Promise<void> {
 
   running = true;
   startButton.disabled = true;
+  setQueueButtonsDisabled(true);
   resultEl.hidden = true;
 
   const usedNames = new Set<string>();
+  if (outDir) {
+    // 仕様§11: 出力先フォルダ内の既存ファイル名を事前に取得し、同名上書きを防止
+    await seedExistingNames(outDir, usedNames);
+  }
+
+  const snapshot = [...queue];
   const results: ProcessResult[] = [];
   const zipEntries: ZipEntry[] = [];
   const startedAt = Date.now();
 
   try {
-    for (let i = 0; i < queue.length; i += 1) {
-      const item = queue[i];
-      updateProgress(i + 1, queue.length);
+    for (let i = 0; i < snapshot.length; i += 1) {
+      const item = snapshot[i];
+      updateProgress(i + 1, snapshot.length);
 
       if (!item.format) {
         results.push({
@@ -309,6 +328,7 @@ async function convert(): Promise<void> {
   } finally {
     running = false;
     startButton.disabled = false;
+    setQueueButtonsDisabled(false);
   }
 }
 
@@ -358,7 +378,9 @@ function init(): void {
   // ヘッダーの画像選択ボタン
   const headerSelectBtn = document.getElementById('header-select-btn');
   if (headerSelectBtn) {
-    headerSelectBtn.addEventListener('click', () => fileInput.click());
+    headerSelectBtn.addEventListener('click', () => {
+      if (!running) fileInput.click();
+    });
   }
 
   // 全件クリア

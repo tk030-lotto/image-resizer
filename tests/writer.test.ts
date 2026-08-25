@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeFolderName } from '../src/io/writer';
+import { sanitizeFolderName, seedExistingNames, type OutputDirectoryHandle } from '../src/io/writer';
 
 describe('sanitizeFolderName', () => {
   it('有効なフォルダ名はそのまま返す', () => {
@@ -16,5 +16,31 @@ describe('sanitizeFolderName', () => {
     expect(sanitizeFolderName('   ')).toBe('resized');
     expect(sanitizeFolderName('.')).toBe('resized');
     expect(sanitizeFolderName('..')).toBe('resized');
+  });
+
+  it('末尾のドットや空白を除去する(Windows無効名対策)', () => {
+    expect(sanitizeFolderName('folder.')).toBe('folder');
+    expect(sanitizeFolderName('folder.  ')).toBe('folder');
+    expect(sanitizeFolderName('photos...')).toBe('photos');
+  });
+});
+
+describe('seedExistingNames', () => {
+  it('ディレクトリ内の既存ファイル名を小文字でSetに取り込む', async () => {
+    const mockDir: Partial<OutputDirectoryHandle> & { values: () => AsyncIterable<{ name: string; kind: string }> } = {
+      kind: 'directory',
+      name: 'resized',
+      values: async function* () {
+        yield { name: 'photo_001.jpg', kind: 'file' };
+        yield { name: 'IMAGE.PNG', kind: 'file' };
+      },
+    };
+
+    const used = new Set<string>();
+    await seedExistingNames(mockDir as unknown as OutputDirectoryHandle, used);
+
+    expect(used.has('photo_001.jpg')).toBe(true);
+    expect(used.has('image.png')).toBe(true);
+    expect(used.has('other.jpg')).toBe(false);
   });
 });

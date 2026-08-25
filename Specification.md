@@ -134,12 +134,13 @@ Image Resizerは、画像の長辺を指定したピクセル数に合わせて�
 
 ## 9. 出力先
 
-デフォルトでは、入力画像が存在するフォルダ内に `resized` フォルダを作成する。
+* **File System Access API 対応ブラウザ（Chrome / Edge 等）**:
+  ユーザーが指定した保存先フォルダ内に、指定した出力サブフォルダ（デフォルト: `resized/`）を作成して直接保存する。
+* **非対応ブラウザ（Firefox / Safari / モバイル等）**:
+  `resized.zip` 形式のアーカイブファイルとしてブラウザから一括ダウンロードする。
 
 ```text
-input/
-├── image01.jpg
-├── image02.jpg
+選択フォルダ/
 └── resized/
     ├── image01.jpg
     └── image02.jpg

@@ -35,7 +35,7 @@ export function supportsDirectoryPicker(): boolean {
   );
 }
 
-/** 出力基点となるフォルダを選択させる。キャンセル時や非対応時は null を返す。 */
+/** 出力基点となるフォルダを選択させる。キャンセル時は null を返し、権限拒否等は例外を再スローする。 */
 export async function pickTargetDirectory(): Promise<OutputDirectoryHandle | null> {
   const picker = (window as unknown as { showDirectoryPicker?: DirectoryPicker })
     .showDirectoryPicker;
@@ -44,8 +44,29 @@ export async function pickTargetDirectory(): Promise<OutputDirectoryHandle | nul
   }
   try {
     return await picker.call(window, { id: 'image-resizer-output', mode: 'readwrite' });
-  } catch (_e) {
-    return null;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/** 既存ファイル名を列挙して衝突判定セットに取り込む(仕様§11: 既存ファイル上書き防止)。 */
+export async function seedExistingNames(
+  dir: OutputDirectoryHandle,
+  used: Set<string>,
+): Promise<void> {
+  const iterable = (dir as unknown as {
+    values?: () => AsyncIterable<{ name: string; kind: string }>;
+  }).values;
+  if (typeof iterable !== 'function') return;
+  try {
+    for await (const handle of iterable.call(dir)) {
+      used.add(handle.name.toLowerCase());
+    }
+  } catch {
+    /* 列挙未対応・アクセス不可時は現状のメモリセットを維持 */
   }
 }
 
@@ -57,7 +78,7 @@ export async function ensureSubDirectory(
   return parent.getDirectoryHandle(name, { create: true });
 }
 
-/** サブフォルダへファイルを書き込む。 */
+/** サブフォルダへファイルを安全に書き込む(ハンドルリーク防止)。 */
 export async function writeFile(
   dir: OutputDirectoryHandle,
   fileName: string,
@@ -65,13 +86,20 @@ export async function writeFile(
 ): Promise<void> {
   const fileHandle = await dir.getFileHandle(fileName, { create: true });
   const writable = await fileHandle.createWritable();
-  await writable.write(blob);
-  await writable.close();
+  try {
+    await writable.write(blob);
+  } finally {
+    await writable.close();
+  }
 }
 
-/** フォルダ名として安全でない文字を置換する(Windows の予約文字など)。 */
+/** フォルダ名として安全でない文字を置換し、末尾ドット・空白を除去する(Windows予約仕様対応)。 */
 export function sanitizeFolderName(name: string, fallback = 'resized'): string {
-  const cleaned = name.trim().replace(/[\\/:*?"<>|]/g, '-').replace(/^\.+$/, '');
+  const cleaned = name
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/[.\s]+$/, '')
+    .replace(/^\.+$/, '');
   return cleaned.length > 0 ? cleaned : fallback;
 }
 
