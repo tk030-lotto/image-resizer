@@ -1,9 +1,9 @@
 :root {
-  color-scheme: dark light;
+  color-scheme: dark;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, Menlo, Monaco, monospace;
 
-  /* スレートダーク基準カラーパレット */
+  /* 統計ツール スレートダーク テーマ (常時適用) */
   --bg: #090d16;
   --bg-gradient: radial-gradient(circle at 50% 0%, #17223b 0%, #090d16 70%);
   --card-bg: #111827;
@@ -42,29 +42,6 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 30px -4px rgba(0, 0, 0, 0.6);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f8fafc;
-    --bg-gradient: radial-gradient(circle at 50% 0%, #e2e8f0 0%, #f8fafc 70%);
-    --card-bg: #ffffff;
-    --card-bg-elevated: #f1f5f9;
-    --card-border: #e2e8f0;
-    --card-border-hover: #cbd5e1;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --text-dim: #94a3b8;
-
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --accent-light: rgba(37, 99, 235, 0.08);
-    --accent-glow: rgba(37, 99, 235, 0.2);
-
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.12);
-  }
 }
 
 * {
