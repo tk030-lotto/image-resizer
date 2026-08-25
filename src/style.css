@@ -606,9 +606,17 @@ body {
   align-items: center;
   justify-content: center;
   gap: 24px;
-  padding: 8px 0;
+  padding: 8px 0 4px;
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.footer-license {
+  text-align: center;
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  padding-bottom: 12px;
+  letter-spacing: 0.01em;
 }
 
 .footer-stat-item {
