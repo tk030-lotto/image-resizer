@@ -62,9 +62,10 @@ export function renderResult(
   }
 
   if (typeof elapsedMs === 'number') {
+    const seconds = (elapsedMs / 1000).toFixed(1);
     const meta = document.createElement('p');
     meta.className = 'meta';
-    meta.textContent = `処理時間：${(elapsedMs / 1000).toFixed(1)}秒`;
+    meta.textContent = `処理時間：${seconds}秒`;
     container.appendChild(meta);
   }
 

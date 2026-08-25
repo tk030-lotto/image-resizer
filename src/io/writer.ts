@@ -46,7 +46,7 @@ export async function pickTargetDirectory(): Promise<OutputDirectoryHandle | nul
   }
   try {
     return await picker.call(window, { id: 'image-resizer-output', mode: 'readwrite' });
-  } catch {
+  } catch (_e) {
     // AbortError(ユーザーがキャンセル)など
     return null;
   }

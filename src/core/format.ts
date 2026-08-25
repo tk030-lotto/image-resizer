@@ -60,7 +60,7 @@ export function supportsWebpEncode(): boolean {
       probe.width = 1;
       probe.height = 1;
       webpEncodeSupported = probe.toDataURL('image/webp').startsWith('data:image/webp');
-    } catch {
+    } catch (_e) {
       webpEncodeSupported = false;
     }
   }
