@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Resizer</title>
+    <meta name="description" content="長辺指定で画像を一括リサイズするシンプルなツール。処理はブラウザ内で完結し、画像を外部に送信しません。" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>Image Resizer</h1>
+
+      <section id="drop-zone" class="drop-zone" aria-label="画像のドラッグ＆ドロップ領域">
+        <p class="drop-message">ここに画像をドロップ</p>
+        <p class="drop-sub">JPG / JPEG / PNG / WebP（複数可）・クリックでファイル選択</p>
+      </section>
+      <input
+        id="file-input"
+        type="file"
+        multiple
+        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+        hidden
+      />
+
+      <div id="file-list" class="file-list" hidden></div>
+
+      <form id="convert-form">
+        <label class="field">
+          <span>長辺</span>
+          <input id="long-edge" type="number" min="1" max="20000" step="1" value="1280" required />
+          px
+        </label>
+        <label class="field">
+          <span>出力先</span>
+          <input id="output-name" type="text" value="resized" maxlength="100" required />
+        </label>
+
+        <button id="start-button" type="submit">変換開始</button>
+        <p id="progress" class="progress" hidden></p>
+        <p id="mode-note" class="mode-note"></p>
+      </form>
+
+      <section id="result" class="result" hidden aria-live="polite"></section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

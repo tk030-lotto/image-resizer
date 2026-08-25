@@ -1,0 +1,305 @@
+:root {
+  color-scheme: light dark;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --text: #18181b;
+  --muted: #71717a;
+  --border: #d4d4d8;
+  --ok: #15803d;
+  --ng: #dc2626;
+  --warn: #b45309;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+}
+
+h1 {
+  margin: 0 0 20px;
+  text-align: center;
+  font-size: 1.45rem;
+  letter-spacing: 0.02em;
+}
+
+/* --- ドロップゾーン --- */
+.drop-zone {
+  padding: 40px 16px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.drop-message {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.drop-sub {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* --- ファイル一覧 --- */
+.file-list {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.file-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.file-clear {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.file-clear:hover {
+  color: var(--ng);
+}
+
+.file-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.file-list li {
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unsupported {
+  color: var(--ng);
+  font-weight: 600;
+}
+
+/* --- フォーム --- */
+#convert-form {
+  margin-top: 18px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field > span {
+  width: 58px;
+  flex: none;
+  font-weight: 600;
+}
+
+.field input[type='number'] {
+  width: 110px;
+}
+
+.field input[type='text'] {
+  flex: 1;
+}
+
+.field input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+  font-size: 1rem;
+}
+
+.field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+#start-button {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+#start-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+#start-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.progress {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.mode-note {
+  margin: 10px 2px 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.mode-note.error {
+  color: var(--ng);
+  font-weight: 600;
+}
+
+/* --- 結果 --- */
+.result {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+.result h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.result .summary {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.result .summary b.ok {
+  color: var(--ok);
+}
+
+.result .summary b.ng {
+  color: var(--ng);
+}
+
+.result .destination,
+.result .meta {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.result .warning {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--warn);
+}
+
+.result details {
+  margin-top: 10px;
+  font-size: 0.82rem;
+}
+
+.result summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.result ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.result li {
+  padding: 2px 0;
+  word-break: break-all;
+}
+
+.li-ok::before {
+  content: '✔ ';
+  color: var(--ok);
+}
+
+.li-ng::before {
+  content: '✘ ';
+  color: var(--ng);
+}
+
+.li-note {
+  color: var(--warn);
+}
+
+/* --- ダークモード --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --card: #232327;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --border: #3f3f46;
+    --ok: #4ade80;
+    --ng: #f87171;
+    --warn: #fbbf24;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+  }
+
+  .drop-zone:hover,
+  .drop-zone.dragover {
+    background: #1e293b;
+  }
+}
