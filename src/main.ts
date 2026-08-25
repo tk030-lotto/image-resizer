@@ -355,6 +355,12 @@ function init(): void {
     fileInput.value = '';
   });
 
+  // ヘッダーの画像選択ボタン
+  const headerSelectBtn = document.getElementById('header-select-btn');
+  if (headerSelectBtn) {
+    headerSelectBtn.addEventListener('click', () => fileInput.click());
+  }
+
   // 全件クリア
   clearAllBtn.addEventListener('click', clearQueue);
 
