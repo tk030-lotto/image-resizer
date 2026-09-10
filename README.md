@@ -3,6 +3,8 @@
 長辺指定で画像を一括リサイズする、高速・軽量なWebアプリケーションです。
 ブラウザ内で完結して動作するため、画像が外部サーバーへ送信されることは一切ありません。
 
+**🔗 公開URL (GitHub Pages):** [https://tk030-lotto.github.io/image-resizer/](https://tk030-lotto.github.io/image-resizer/)
+
 ## 特徴
 
 * **一括リサイズ**: 複数画像をまとめてドラッグ＆ドロップまたはファイル選択で処理
