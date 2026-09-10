@@ -84,3 +84,22 @@ dist/index.html  44.91 kB │ gzip: 15.31 kB
 ```
 
 The production output `dist/index.html` is fully self-contained with inlined JavaScript and CSS, ready for zero-dependency offline usage.
+
+---
+
+## 6. GitHub Pages Deployment & Public Release (2026/09/10)
+
+- **変更・実装内容**:
+  - GitHub CLI によるリポジトリ可視性の変更（`private` → `public`）。
+  - GitHub Pages のビルドタイプ有効化（`workflow`）。
+  - `vite.config.ts` への相対ベースパス（`base: './'`）の追加。
+  - `.github/workflows/deploy.yml` の作成（Node 20 環境での `npm ci` → `npm run build` → Pages 自動デプロイ）。
+  - `README.md` への公開 URL（https://tk030-lotto.github.io/image-resizer/）の明記。
+- **技術的決定・背景**:
+  - 本ツールはサーバーレスかつ完全クライアントサイド動作（Canvas API + fflate）であるため、GitHub Pages による無料静的ホスティングが最適であると判断。
+  - リポジトリにビルド成果物（`dist/`）を直接コミットするのではなく、GitHub Actions で自動ビルド・デプロイを行う標準的な CI/CD パイプラインを採用し、ソースコードの純粋性とデプロイの自動化を両立。
+- **📝 記事ネタ・発信知見**:
+  - **提供価値**: サーバー通信一切なし・画像漏洩リスクゼロの単機能画像リサイズWebアプリを、Vite + vite-plugin-singlefile + GitHub Actions を用いて完全無料で GitHub Pages にホスティング・公開する実践手順。
+  - **試行錯誤・ブレイクスルー**: サブディレクトリ配信（`/<repo-name>/`）における `base: './'` の重要性と、`gh api` コマンドによる GitHub Pages の CUI 初期化手順。
+  - **タイトル案**: 「サーバー代ゼロ・画像漏洩ゼロ！ブラウザ完結型画像一括リサイズツールをGitHub Pagesで全自動公開した話」
+
