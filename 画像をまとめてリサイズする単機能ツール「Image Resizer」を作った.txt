@@ -1,5 +1,8 @@
 # 画像をまとめてリサイズする単機能ツール「Image Resizer」を作った
 
+▼ ブラウザですぐにお使いいただけます（完全無料・サーバー送信なし）
+https://tk030-lotto.github.io/image-resizer/
+
 画像をWebサイトに掲載したり、SNSへ投稿したり、メールや資料に添付したりするとき、画像サイズが大きすぎることがあります。
 
 1枚だけなら、それほど問題ではありません。
@@ -322,3 +325,13 @@ JavaScriptとCSSを単一HTMLに内包しているため、完成後は非常に
 Image Resizerも、画像編集ソフトへ広げるのではなく、まずは「画像の一括リサイズ」という一つの機能を、シンプルかつ安全に使えるところまで仕上げました。
 
 MIT Licenseで公開しています。
+
+---
+
+### ツール公開URL（GitHub Pages）
+https://tk030-lotto.github.io/image-resizer/
+
+### GitHubリポジトリ（ソースコード）
+https://github.com/tk030-lotto/image-resizer
+
+#画像リサイズ #画像処理 #Webツール #便利ツール #TypeScript #Vite #オープンソース #個人開発
