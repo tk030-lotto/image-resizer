@@ -13,3 +13,9 @@ SKILLS.md
 .agents/
 knowledge/
 RECORD.md
+
+# 内部運用ファイル（共通ルール）
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.roorules
