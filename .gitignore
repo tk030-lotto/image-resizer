@@ -25,3 +25,4 @@ tests/
 
 # 開発ドキュメント（個人パス混入防止）
 CODE_REVIEW_*.md
+`n# 仕様書除外（フェーズ2-C-β）`nSpecification*.md
