@@ -22,3 +22,6 @@ GEMINI.md
 
 # Tests directory
 tests/
+
+# 開発ドキュメント（個人パス混入防止）
+CODE_REVIEW_*.md
